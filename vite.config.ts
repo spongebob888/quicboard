@@ -4,7 +4,6 @@ import react from '@vitejs/plugin-react';
 const apiTarget = process.env.QUICPROXY_API_TARGET || 'http://127.0.0.1:1235';
 
 export default defineConfig({
-  base: '/quicboard/',
   plugins: [react()],
   server: {
     host: '0.0.0.0',
