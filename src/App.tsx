@@ -194,7 +194,7 @@ export function App() {
       </main>
 
       <nav className="mobile-dock" aria-label="Mobile navigation">
-        {navItems.slice(0, 5).map((item) => (
+        {navItems.map((item) => (
           <button key={item.view} className={view === item.view ? 'active' : ''} onClick={() => setView(item.view)} title={item.label}>
             <item.icon size={20} />
           </button>
@@ -504,13 +504,6 @@ function SettingsView({ settings, setSettings }: { settings: ApiSettings; setSet
     setSettings({ ...draft, baseUrl: draft.baseUrl.trim() });
   }
 
-  function resetToProxy() {
-    const next = { ...draft, baseUrl: '' };
-    localStorage.setItem('quicproxy.apiBase', '');
-    setDraft(next);
-    setSettings(next);
-  }
-
   async function quit() {
     await api.quit(settings);
   }
@@ -527,7 +520,6 @@ function SettingsView({ settings, setSettings }: { settings: ApiSettings; setSet
       </label>
       <div className="settings-actions">
         <button className="primary-button" onClick={save}><Settings size={16} />Save</button>
-        <button className="secondary-button" onClick={resetToProxy}><RefreshCw size={16} />Use dev proxy</button>
         <button className="danger-button" onClick={quit}><LogOut size={16} />Quit core</button>
       </div>
     </section>

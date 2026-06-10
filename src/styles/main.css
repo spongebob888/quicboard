@@ -752,7 +752,7 @@ label span {
     bottom: 14px;
     height: 56px;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 6px;
     padding: 6px;
     border: 1px solid var(--border);
