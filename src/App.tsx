@@ -124,7 +124,7 @@ export function App() {
 
   const activeView = {
     overview: <Overview observe={observe} outbounds={outbounds} connections={connections} totals={totals} mode={mode} series={trafficSeries} />,
-    proxies: <Proxies settings={settings} outbounds={outbounds} onRefresh={refresh} />,
+    proxies: <Proxies settings={settings} outbounds={outbounds} setOutbounds={setOutbounds} onRefresh={refresh} />,
     connections: <Connections settings={settings} connections={connections} onRefresh={refresh} />,
     traffic: <Traffic settings={settings} traffic={traffic} setTraffic={setTraffic} />,
     tools: <Tools settings={settings} outbounds={outbounds} />,
@@ -132,8 +132,15 @@ export function App() {
   }[view];
 
   async function changeMode(nextMode: RouterMode) {
-    await api.setMode(settings, nextMode);
+    const previousMode = mode;
     setMode(nextMode);
+    try {
+      await api.setMode(settings, nextMode);
+      refresh(true);
+    } catch (err) {
+      setMode(previousMode);
+      setError(err instanceof Error ? err.message : 'Unable to change router mode');
+    }
   }
 
   return (
@@ -294,14 +301,28 @@ function Overview({ observe, outbounds, connections, totals, mode, series }: {
   );
 }
 
-function Proxies({ settings, outbounds, onRefresh }: { settings: ApiSettings; outbounds: OutboundInfo[]; onRefresh: (silent?: boolean) => Promise<void> }) {
+function Proxies({
+  settings,
+  outbounds,
+  setOutbounds,
+  onRefresh,
+}: {
+  settings: ApiSettings;
+  outbounds: OutboundInfo[];
+  setOutbounds: React.Dispatch<React.SetStateAction<OutboundInfo[]>>;
+  onRefresh: (silent?: boolean) => Promise<void>;
+}) {
   const [busy, setBusy] = useState('');
 
   async function select(outbound: string, selected: string) {
     setBusy(`${outbound}:${selected}`);
+    const previousOutbounds = outbounds;
+    setOutbounds((items) => items.map((item) => item.tag === outbound ? { ...item, selected_node: selected } : item));
     try {
       await api.select(settings, outbound, selected);
-      await onRefresh(true);
+      onRefresh(true);
+    } catch (err) {
+      setOutbounds(previousOutbounds);
     } finally {
       setBusy('');
     }

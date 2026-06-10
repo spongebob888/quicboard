@@ -129,13 +129,18 @@ async function request<T>(
     return undefined as T;
   }
 
+  const text = await response.text();
+  if (!text.trim()) {
+    return undefined as T;
+  }
+
   const contentType = response.headers.get('Content-Type') || '';
   if (!contentType.includes('application/json')) {
-    const preview = (await response.text()).slice(0, 80).replace(/\s+/g, ' ');
+    const preview = text.slice(0, 80).replace(/\s+/g, ' ');
     throw new Error(`Expected JSON from ${response.url}, got ${contentType || 'unknown content type'}: ${preview}`);
   }
 
-  return response.json() as Promise<T>;
+  return JSON.parse(text) as T;
 }
 
 export const api = {
