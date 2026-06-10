@@ -2,6 +2,12 @@
 
 Quicboard is a React/Vite web UI for the QuicProxy core. It provides a compact control panel for observing traffic, switching router modes, managing proxy selectors, inspecting connections, and testing outbound routes.
 
+## Screenshots
+
+![Quicboard bright theme](assets/images/bright.jpg)
+
+![Quicboard dark theme](assets/images/dark.jpeg)
+
 ## Features
 
 - Realtime overview for transfer totals, upload/download rates, sessions, memory, DNS latency, and route latency.
