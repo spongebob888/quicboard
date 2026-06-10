@@ -34,6 +34,7 @@ const emptyRateSeries = (): RateSample[] => Array.from({ length: 18 }, () => ({ 
 const defaultSettings: ApiSettings = {
   baseUrl: localStorage.getItem('quicproxy.apiBase') || '',
   password: localStorage.getItem('quicproxy.password') || '',
+  refreshIntervalMs: readRefreshInterval(),
 };
 
 const navItems: Array<{ view: View; label: string; icon: typeof LayoutDashboard }> = [
@@ -101,9 +102,9 @@ export function App() {
     lastTrafficSample.current = null;
     setTrafficSeries(emptyRateSeries());
     refresh();
-    const id = window.setInterval(() => refresh(true), 3000);
+    const id = window.setInterval(() => refresh(true), settings.refreshIntervalMs);
     return () => window.clearInterval(id);
-  }, [settings.baseUrl, settings.password]);
+  }, [settings.baseUrl, settings.password, settings.refreshIntervalMs]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -499,9 +500,12 @@ function SettingsView({ settings, setSettings }: { settings: ApiSettings; setSet
   const [draft, setDraft] = useState(settings);
 
   function save() {
+    const refreshIntervalMs = clampRefreshInterval(draft.refreshIntervalMs);
     localStorage.setItem('quicproxy.apiBase', draft.baseUrl.trim());
     localStorage.setItem('quicproxy.password', draft.password);
-    setSettings({ ...draft, baseUrl: draft.baseUrl.trim() });
+    localStorage.setItem('quicproxy.refreshIntervalMs', String(refreshIntervalMs));
+    setSettings({ ...draft, baseUrl: draft.baseUrl.trim(), refreshIntervalMs });
+    setDraft({ ...draft, baseUrl: draft.baseUrl.trim(), refreshIntervalMs });
   }
 
   async function quit() {
@@ -517,6 +521,20 @@ function SettingsView({ settings, setSettings }: { settings: ApiSettings; setSet
       <label>
         <span>Password</span>
         <input type="password" value={draft.password} onChange={(event) => setDraft({ ...draft, password: event.target.value })} />
+      </label>
+      <label>
+        <span>Refresh interval</span>
+        <div className="number-field">
+          <input
+            type="number"
+            min="1"
+            max="60"
+            step="1"
+            value={Math.round(draft.refreshIntervalMs / 1000)}
+            onChange={(event) => setDraft({ ...draft, refreshIntervalMs: Number(event.target.value) * 1000 })}
+          />
+          <span>sec</span>
+        </div>
       </label>
       <div className="settings-actions">
         <button className="primary-button" onClick={save}><Settings size={16} />Save</button>
@@ -569,4 +587,13 @@ function latencyQualityClass(latencyUs: number) {
 
 function capitalizeMode(mode: RouterMode) {
   return mode.charAt(0).toUpperCase() + mode.slice(1);
+}
+
+function readRefreshInterval() {
+  return clampRefreshInterval(Number(localStorage.getItem('quicproxy.refreshIntervalMs')) || 3000);
+}
+
+function clampRefreshInterval(value: number) {
+  if (!Number.isFinite(value)) return 3000;
+  return Math.min(60000, Math.max(1000, Math.round(value)));
 }

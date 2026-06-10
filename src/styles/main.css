@@ -665,6 +665,26 @@ label span {
   background: var(--surface-control);
 }
 
+.number-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--surface-control);
+}
+
+.number-field input {
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.number-field span {
+  color: var(--text-muted);
+}
+
 .response-panel pre {
   margin: 0;
   overflow: auto;

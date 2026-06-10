@@ -18,19 +18,13 @@ Quicboard is a React/Vite web UI for the QuicProxy core. It provides a compact c
 - Active connection list with filtering and close actions.
 - Destination traffic sampling via QuicProxy's `/traffic` API.
 - Outbound request testing through the `/request` API.
+- Configurable refresh interval for live polling.
 - Dark and bright themes, persisted locally.
-- Local development proxy to avoid browser CORS issues.
 
 ## Requirements
 
 - Node.js with npm.
 - A running QuicProxy core with API enabled.
-
-The development proxy defaults to:
-
-```text
-http://127.0.0.1:1235
-```
 
 ## Quick Start
 
@@ -52,17 +46,7 @@ Open:
 http://localhost:5173/
 ```
 
-If QuicProxy is listening on `127.0.0.1:1235`, leave `API base URL` empty in Quicboard Settings and use the dev proxy.
-
-## API Target
-
-To point the dev proxy at another QuicProxy API address:
-
-```bash
-QUICPROXY_API_TARGET=http://127.0.0.1:9090 npm run dev -- --host 0.0.0.0
-```
-
-For local development, same-origin proxying is preferred because the QuicProxy API may not send CORS headers.
+Set the QuicProxy API address and password in Quicboard Settings. The Settings page also controls the live refresh interval. The value is saved locally and clamped between 1 and 60 seconds.
 
 ## Build
 

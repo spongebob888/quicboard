@@ -70,6 +70,7 @@ export interface RequestResponse {
 export interface ApiSettings {
   baseUrl: string;
   password: string;
+  refreshIntervalMs: number;
 }
 
 function normalizeBaseUrl(baseUrl: string) {
