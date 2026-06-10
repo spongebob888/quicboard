@@ -330,15 +330,15 @@ td small,
 
 .overview-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
 .hero-panel {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
   align-items: stretch;
-  justify-content: space-between;
-  gap: 18px;
+  gap: 22px;
   min-height: 210px;
   background:
     var(--hero-gradient),
@@ -380,8 +380,8 @@ td small,
 .rate-chart {
   position: relative;
   align-self: center;
-  width: min(42%, 260px);
-  min-height: 92px;
+  width: 100%;
+  min-height: 132px;
 }
 
 .hero-sparkline {
@@ -432,18 +432,111 @@ td small,
 
 .selector-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
 .mini-group {
-  padding: 12px;
+  padding: 10px 12px;
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+  align-items: center;
+  gap: 12px;
 }
 
-.mini-group span {
+.mini-group-label {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.mini-group-label span {
   color: var(--text-muted);
+}
+
+.mini-group-label strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selector-menu {
+  position: relative;
+}
+
+.selector-trigger {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--teal) 12%, transparent), transparent),
+    var(--surface-control);
+  color: var(--text);
+}
+
+.selector-trigger:hover,
+.selector-trigger[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent),
+    var(--surface-control);
+}
+
+.selector-trigger span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron-icon {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  opacity: 0.72;
+}
+
+.selector-options {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 4px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  box-shadow: 0 18px 50px var(--shadow);
+}
+
+.selector-options button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--text-soft);
+  text-align: left;
+}
+
+.selector-options button:hover,
+.selector-options button.selected {
+  background: var(--accent-soft);
+  color: var(--accent-soft-text);
 }
 
 .proxy-grid {
@@ -553,6 +646,10 @@ td small,
 .choice-list {
   display: grid;
   gap: 8px;
+}
+
+.choice-list.compact {
+  margin-top: 6px;
 }
 
 .choice-list button {
@@ -749,6 +846,10 @@ label span {
   }
 
   .rate-split {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-group {
     grid-template-columns: 1fr;
   }
 

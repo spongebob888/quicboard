@@ -131,7 +131,7 @@ export function App() {
   }, [observe]);
 
   const activeView = {
-    overview: <Overview observe={observe} outbounds={outbounds} connections={connections} totals={totals} mode={mode} series={trafficSeries} />,
+    overview: <Overview settings={settings} observe={observe} outbounds={outbounds} setOutbounds={setOutbounds} onRefresh={refresh} connections={connections} totals={totals} mode={mode} series={trafficSeries} />,
     proxies: <Proxies settings={settings} outbounds={outbounds} setOutbounds={setOutbounds} onRefresh={refresh} />,
     connections: <Connections settings={settings} connections={connections} onRefresh={refresh} />,
     traffic: <Traffic settings={settings} traffic={traffic} setTraffic={setTraffic} />,
@@ -220,17 +220,37 @@ export function App() {
   );
 }
 
-function Overview({ observe, outbounds, connections, totals, mode, series }: {
+function Overview({ settings, observe, outbounds, setOutbounds, onRefresh, connections, totals, mode, series }: {
+  settings: ApiSettings;
   observe: ObserveResponse | null;
   outbounds: OutboundInfo[];
+  setOutbounds: React.Dispatch<React.SetStateAction<OutboundInfo[]>>;
+  onRefresh: (silent?: boolean) => Promise<void>;
   connections: ConnectionData[];
   totals: { upload: number; download: number; tcp: number; udp: number; memory: number };
   mode: RouterMode;
   series: RateSample[];
 }) {
-  const selectors = outbounds.filter((item) => item.outbounds?.length);
+  const [busy, setBusy] = useState('');
+  const [openSelector, setOpenSelector] = useState('');
+  const selectors = outbounds.filter((item) => item.tag === 'default_server' && item.outbounds?.length);
   const fastest = outbounds.filter((item) => item.latency > 0).sort((a, b) => a.latency - b.latency)[0];
   const latestRate = series[series.length - 1] ?? { upload: 0, download: 0 };
+
+  async function select(outbound: string, selected: string) {
+    setBusy(`${outbound}:${selected}`);
+    setOpenSelector('');
+    const previousOutbounds = outbounds;
+    setOutbounds((items) => items.map((item) => item.tag === outbound ? { ...item, selected_node: selected } : item));
+    try {
+      await api.select(settings, outbound, selected);
+      onRefresh(true);
+    } catch (err) {
+      setOutbounds(previousOutbounds);
+    } finally {
+      setBusy('');
+    }
+  }
 
   return (
     <section className="view-stack">
@@ -251,24 +271,62 @@ function Overview({ observe, outbounds, connections, totals, mode, series }: {
         />
       </div>
 
-      <div className="overview-layout">
-        <section className="panel hero-panel">
-          <div className="rate-summary">
-            <span className="eyebrow">Realtime</span>
-            <div className="rate-split">
-              <div>
-                <span>Down</span>
-                <strong>{formatRate(latestRate.download)}</strong>
-              </div>
-              <div>
-                <span>Up</span>
-                <strong>{formatRate(latestRate.upload)}</strong>
-              </div>
+      <section className="panel hero-panel">
+        <div className="rate-summary">
+          <span className="eyebrow">Realtime</span>
+          <div className="rate-split">
+            <div>
+              <span>Down</span>
+              <strong>{formatRate(latestRate.download)}</strong>
+            </div>
+            <div>
+              <span>Up</span>
+              <strong>{formatRate(latestRate.upload)}</strong>
             </div>
           </div>
-          <div className="rate-chart" aria-label="Upload and download rate trend">
-            <Sparkline values={series.map((item) => item.download)} className="hero-sparkline download-line" />
-            <Sparkline values={series.map((item) => item.upload)} className="hero-sparkline upload-line" />
+        </div>
+        <div className="rate-chart" aria-label="Upload and download rate trend">
+          <Sparkline values={series.map((item) => item.download)} className="hero-sparkline download-line" />
+          <Sparkline values={series.map((item) => item.upload)} className="hero-sparkline upload-line" />
+        </div>
+      </section>
+
+      <div className="overview-layout">
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Proxy groups</h2>
+          </div>
+          <div className="selector-grid">
+            {selectors.map((selector) => (
+              <div className="mini-group" key={selector.tag}>
+                <div className="mini-group-label">
+                  <span>{selector.tag}</span>
+                  <strong>{selector.selected_node || 'none'}</strong>
+                </div>
+                <div className="selector-menu">
+                  <button
+                    className="selector-trigger"
+                    onClick={() => setOpenSelector((current) => current === selector.tag ? '' : selector.tag)}
+                    disabled={!!busy}
+                    aria-expanded={openSelector === selector.tag}
+                    aria-label={`Select proxy for ${selector.tag}`}
+                  >
+                    <span>{selector.selected_node || 'Select proxy'}</span>
+                    {busy.startsWith(`${selector.tag}:`) ? <RefreshCw size={14} className="spin" /> : <ChevronDownIcon />}
+                  </button>
+                  {openSelector === selector.tag && (
+                    <div className="selector-options">
+                      {selector.outbounds?.map((choice) => (
+                        <button key={choice} className={selector.selected_node === choice ? 'selected' : ''} onClick={() => select(selector.tag, choice)}>
+                          <span>{choice}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {!selectors.length && <Empty title="No selector groups" />}
           </div>
         </section>
 
@@ -289,22 +347,6 @@ function Overview({ observe, outbounds, connections, totals, mode, series }: {
           )}
         </section>
       </div>
-
-      <section className="panel">
-        <div className="panel-head">
-          <h2>Proxy groups</h2>
-          <span>{selectors.length} selectors</span>
-        </div>
-        <div className="selector-grid">
-          {selectors.map((selector) => (
-            <div className="mini-group" key={selector.tag}>
-              <span>{selector.tag}</span>
-              <strong>{selector.selected_node || 'none'}</strong>
-            </div>
-          ))}
-          {!selectors.length && <Empty title="No selector groups" />}
-        </div>
-      </section>
     </section>
   );
 }
@@ -586,6 +628,10 @@ function Metric({ icon: Icon, label, value, detail }: { icon: typeof Gauge; labe
 
 function Empty({ title }: { title: string }) {
   return <div className="empty">{title}</div>;
+}
+
+function ChevronDownIcon() {
+  return <span className="chevron-icon" aria-hidden="true" />;
 }
 
 function LatencyBadge({ latencyUs, label }: { latencyUs: number; label?: string }) {
