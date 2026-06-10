@@ -39,9 +39,7 @@ Auth uses the `Authorization` header. Quicboard sends `Bearer <password>` when a
 ## UI Behavior Notes
 
 - Router mode is displayed as `Rule`, `Proxy`, `Direct`, but API payloads remain lowercase.
-- Realtime network rate is computed client-side from inbound traffic deltas:
-  - download rate = `(current download - previous download) / elapsed seconds`
-  - upload rate = `(current upload - previous upload) / elapsed seconds`
+- Realtime network rate is computed client-side from inbound traffic deltas over an 8-second rolling smoothing window.
 - Total transfer uses inbound stats to avoid double-counting selector and selected outbound traffic.
 - DNS, route, and outbound latency are rendered with colored quality badges.
 - Refresh interval is configured in Settings, persisted as `quicproxy.refreshIntervalMs`, and clamped between 1 and 60 seconds.

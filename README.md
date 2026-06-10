@@ -93,11 +93,11 @@ Authorization: Bearer <password>
 
 ## Traffic Rate Notes
 
-Realtime rates are computed client-side from inbound traffic deltas:
+Realtime rates are computed client-side from inbound traffic deltas over an 8-second rolling smoothing window:
 
 ```text
-download rate = (current download - previous download) / elapsed seconds
-upload rate   = (current upload - previous upload) / elapsed seconds
+download rate = (current download - window start download) / elapsed seconds
+upload rate   = (current upload - window start upload) / elapsed seconds
 ```
 
 Transfer totals also use inbound stats to avoid double-counting selector and selected outbound traffic.

@@ -28,8 +28,10 @@ import { formatBytes, formatDurationFromEpoch, formatLatency, formatRate, format
 type View = 'overview' | 'proxies' | 'connections' | 'traffic' | 'tools' | 'settings';
 type ThemeMode = 'dark' | 'light';
 type RateSample = { upload: number; download: number };
+type TrafficSnapshot = RateSample & { timestamp: number };
 
 const emptyRateSeries = (): RateSample[] => Array.from({ length: 18 }, () => ({ upload: 0, download: 0 }));
+const RATE_SMOOTHING_WINDOW_MS = 8000;
 
 const defaultSettings: ApiSettings = {
   baseUrl: localStorage.getItem('quicproxy.apiBase') || '',
@@ -62,7 +64,7 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [trafficSeries, setTrafficSeries] = useState<RateSample[]>(emptyRateSeries);
-  const lastTrafficSample = useRef<{ upload: number; download: number; timestamp: number } | null>(null);
+  const trafficHistory = useRef<TrafficSnapshot[]>([]);
 
   async function refresh(silent = false) {
     if (!silent) setLoading(true);
@@ -79,15 +81,7 @@ export function App() {
       setMode(modeData.mode);
       const now = Date.now();
       const traffic = observedTraffic(observeData);
-      const previous = lastTrafficSample.current;
-      const elapsedSeconds = previous ? (now - previous.timestamp) / 1000 : 0;
-      const sample = previous && elapsedSeconds > 0
-        ? {
-          upload: Math.max(0, (traffic.upload - previous.upload) / elapsedSeconds),
-          download: Math.max(0, (traffic.download - previous.download) / elapsedSeconds),
-        }
-        : { upload: 0, download: 0 };
-      lastTrafficSample.current = { ...traffic, timestamp: now };
+      const sample = smoothedRateSample(trafficHistory.current, { ...traffic, timestamp: now });
       setTrafficSeries((series) => [...series.slice(1), sample]);
       setError('');
       setLastUpdated(new Date());
@@ -99,7 +93,7 @@ export function App() {
   }
 
   useEffect(() => {
-    lastTrafficSample.current = null;
+    trafficHistory.current = [];
     setTrafficSeries(emptyRateSeries());
     refresh();
     const id = window.setInterval(() => refresh(true), settings.refreshIntervalMs);
@@ -608,6 +602,25 @@ function observedTraffic(observe: ObserveResponse) {
   return {
     upload: sumBy(inbounds, (item) => item.upload),
     download: sumBy(inbounds, (item) => item.download),
+  };
+}
+
+function smoothedRateSample(history: TrafficSnapshot[], current: TrafficSnapshot): RateSample {
+  history.push(current);
+  const cutoff = current.timestamp - RATE_SMOOTHING_WINDOW_MS;
+  while (history.length > 1 && history[0].timestamp < cutoff) {
+    history.shift();
+  }
+
+  const previous = history[0];
+  const elapsedSeconds = (current.timestamp - previous.timestamp) / 1000;
+  if (history.length < 2 || elapsedSeconds <= 0) {
+    return { upload: 0, download: 0 };
+  }
+
+  return {
+    upload: Math.max(0, (current.upload - previous.upload) / elapsedSeconds),
+    download: Math.max(0, (current.download - previous.download) / elapsedSeconds),
   };
 }
 
