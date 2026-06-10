@@ -48,6 +48,13 @@ http://localhost:5173/
 
 Set the QuicProxy API address and password in Quicboard Settings. The Settings page also controls the live refresh interval. The value is saved locally and clamped between 1 and 60 seconds.
 
+Tabs can be opened directly with hash URLs, for example:
+
+```text
+http://127.0.0.1:5734/quicboard/#/proxies
+http://127.0.0.1:5734/quicboard/#/settings
+```
+
 ## Build
 
 Create a production build:

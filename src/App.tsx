@@ -47,7 +47,7 @@ const navItems: Array<{ view: View; label: string; icon: typeof LayoutDashboard 
 ];
 
 export function App() {
-  const [view, setView] = useState<View>('overview');
+  const [view, setView] = useState<View>(() => viewFromHash());
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('quicproxy.theme');
     return saved === 'light' || saved === 'dark' ? saved : 'dark';
@@ -111,6 +111,20 @@ export function App() {
     localStorage.setItem('quicproxy.theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    function syncViewFromHash() {
+      setView(viewFromHash());
+    }
+
+    if (!window.location.hash) {
+      window.history.replaceState(null, '', '#/overview');
+    }
+
+    window.addEventListener('hashchange', syncViewFromHash);
+    syncViewFromHash();
+    return () => window.removeEventListener('hashchange', syncViewFromHash);
+  }, []);
+
   const totals = useMemo(() => {
     const inboundStats = Object.values(observe?.inbounds ?? {});
     return {
@@ -155,7 +169,7 @@ export function App() {
         </div>
         <nav>
           {navItems.map((item) => (
-            <button key={item.view} className={view === item.view ? 'active' : ''} onClick={() => setView(item.view)} title={item.label}>
+            <button key={item.view} className={view === item.view ? 'active' : ''} onClick={() => navigateToView(item.view)} title={item.label}>
               <item.icon size={18} />
               <span>{item.label}</span>
             </button>
@@ -203,7 +217,7 @@ export function App() {
 
       <nav className="mobile-dock" aria-label="Mobile navigation">
         {navItems.map((item) => (
-          <button key={item.view} className={view === item.view ? 'active' : ''} onClick={() => setView(item.view)} title={item.label}>
+          <button key={item.view} className={view === item.view ? 'active' : ''} onClick={() => navigateToView(item.view)} title={item.label}>
             <item.icon size={20} />
           </button>
         ))}
@@ -608,6 +622,21 @@ function latencyQualityClass(latencyUs: number) {
 
 function capitalizeMode(mode: RouterMode) {
   return mode.charAt(0).toUpperCase() + mode.slice(1);
+}
+
+function navigateToView(view: View) {
+  const nextHash = `#/${view}`;
+  if (window.location.hash === nextHash) return;
+  window.location.hash = nextHash;
+}
+
+function viewFromHash(): View {
+  const view = window.location.hash.replace(/^#\/?/, '').split('/')[0];
+  return isView(view) ? view : 'overview';
+}
+
+function isView(value: string): value is View {
+  return navItems.some((item) => item.view === value);
 }
 
 function readRefreshInterval() {
