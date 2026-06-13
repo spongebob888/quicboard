@@ -36,6 +36,10 @@ const LOGO_FILTERS: Record<ThemeMode, string> = {
   dark: 'hue-rotate(-58deg) saturate(0.88) brightness(1.04)',
   light: 'hue-rotate(-68deg) saturate(0.78) brightness(0.96)',
 };
+const LOGO_TONES: Record<ThemeMode, { hue: number; saturation: number; brightness: number }> = {
+  dark: { hue: -58, saturation: 0.88, brightness: 1.04 },
+  light: { hue: -68, saturation: 0.78, brightness: 0.96 },
+};
 
 const defaultSettings: ApiSettings = {
   baseUrl: localStorage.getItem('quicproxy.apiBase') || '',
@@ -791,18 +795,96 @@ function updateFavicon(theme: ThemeMode) {
     const context = canvas.getContext('2d');
     if (!context) return;
 
-    context.filter = LOGO_FILTERS[theme];
     context.drawImage(image, 0, 0, size, size);
+    applyLogoTone(context, size, theme);
 
-    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
-    }
+    document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]').forEach((item) => item.remove());
+    const link = document.createElement('link');
+    link.rel = 'icon';
     link.type = 'image/png';
+    link.sizes = `${size}x${size}`;
     link.href = canvas.toDataURL('image/png');
+    document.head.appendChild(link);
   };
+}
+
+function applyLogoTone(context: CanvasRenderingContext2D, size: number, theme: ThemeMode) {
+  const imageData = context.getImageData(0, 0, size, size);
+  const tone = LOGO_TONES[theme];
+  const matrix = multiplyColorMatrices(
+    brightnessMatrix(tone.brightness),
+    multiplyColorMatrices(saturateMatrix(tone.saturation), hueRotateMatrix(tone.hue)),
+  );
+
+  for (let index = 0; index < imageData.data.length; index += 4) {
+    const red = imageData.data[index];
+    const green = imageData.data[index + 1];
+    const blue = imageData.data[index + 2];
+
+    imageData.data[index] = clampColor(matrix[0] * red + matrix[1] * green + matrix[2] * blue);
+    imageData.data[index + 1] = clampColor(matrix[3] * red + matrix[4] * green + matrix[5] * blue);
+    imageData.data[index + 2] = clampColor(matrix[6] * red + matrix[7] * green + matrix[8] * blue);
+  }
+
+  context.putImageData(imageData, 0, 0);
+}
+
+function hueRotateMatrix(degrees: number) {
+  const radians = degrees * Math.PI / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+
+  return [
+    0.213 + cos * 0.787 - sin * 0.213,
+    0.715 - cos * 0.715 - sin * 0.715,
+    0.072 - cos * 0.072 + sin * 0.928,
+    0.213 - cos * 0.213 + sin * 0.143,
+    0.715 + cos * 0.285 + sin * 0.140,
+    0.072 - cos * 0.072 - sin * 0.283,
+    0.213 - cos * 0.213 - sin * 0.787,
+    0.715 - cos * 0.715 + sin * 0.715,
+    0.072 + cos * 0.928 + sin * 0.072,
+  ];
+}
+
+function saturateMatrix(value: number) {
+  return [
+    0.213 + 0.787 * value,
+    0.715 - 0.715 * value,
+    0.072 - 0.072 * value,
+    0.213 - 0.213 * value,
+    0.715 + 0.285 * value,
+    0.072 - 0.072 * value,
+    0.213 - 0.213 * value,
+    0.715 - 0.715 * value,
+    0.072 + 0.928 * value,
+  ];
+}
+
+function brightnessMatrix(value: number) {
+  return [
+    value, 0, 0,
+    0, value, 0,
+    0, 0, value,
+  ];
+}
+
+function multiplyColorMatrices(left: number[], right: number[]) {
+  return [
+    left[0] * right[0] + left[1] * right[3] + left[2] * right[6],
+    left[0] * right[1] + left[1] * right[4] + left[2] * right[7],
+    left[0] * right[2] + left[1] * right[5] + left[2] * right[8],
+    left[3] * right[0] + left[4] * right[3] + left[5] * right[6],
+    left[3] * right[1] + left[4] * right[4] + left[5] * right[7],
+    left[3] * right[2] + left[4] * right[5] + left[5] * right[8],
+    left[6] * right[0] + left[7] * right[3] + left[8] * right[6],
+    left[6] * right[1] + left[7] * right[4] + left[8] * right[7],
+    left[6] * right[2] + left[7] * right[5] + left[8] * right[8],
+  ];
+}
+
+function clampColor(value: number) {
+  return Math.min(255, Math.max(0, Math.round(value)));
 }
 
 function viewFromHash(): View {
