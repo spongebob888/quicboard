@@ -14,13 +14,13 @@ import {
   Search,
   Send,
   Settings,
-  ShieldCheck,
   Sun,
   TerminalSquare,
   Wifi,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import logoUrl from '../assets/images/icon.png';
 import { Sparkline } from './components/Sparkline';
 import { ApiSettings, ConnectionData, ObserveResponse, OutboundInfo, RequestResponse, RouterMode, TrafficEntry, api } from './lib/api';
 import { formatBytes, formatDurationFromEpoch, formatLatency, formatRate, formatTime, sumBy } from './lib/format';
@@ -32,6 +32,10 @@ type TrafficSnapshot = RateSample & { timestamp: number };
 
 const emptyRateSeries = (): RateSample[] => Array.from({ length: 18 }, () => ({ upload: 0, download: 0 }));
 const RATE_SMOOTHING_WINDOW_MS = 8000;
+const LOGO_FILTERS: Record<ThemeMode, string> = {
+  dark: 'hue-rotate(-58deg) saturate(0.88) brightness(1.04)',
+  light: 'hue-rotate(-68deg) saturate(0.78) brightness(0.96)',
+};
 
 const defaultSettings: ApiSettings = {
   baseUrl: localStorage.getItem('quicproxy.apiBase') || '',
@@ -103,6 +107,7 @@ export function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('quicproxy.theme', theme);
+    updateFavicon(theme);
   }, [theme]);
 
   useEffect(() => {
@@ -155,7 +160,9 @@ export function App() {
     <div className="app-shell">
       <aside className="sidebar" aria-label="Primary navigation">
         <div className="brand">
-          <div className="brand-mark"><ShieldCheck size={20} /></div>
+          <div className="brand-mark">
+            <img src={logoUrl} alt="" aria-hidden="true" />
+          </div>
           <div>
             <strong>QuicProxy</strong>
             <span>Control center</span>
@@ -687,6 +694,31 @@ function navigateToView(view: View) {
   const nextHash = `#/${view}`;
   if (window.location.hash === nextHash) return;
   window.location.hash = nextHash;
+}
+
+function updateFavicon(theme: ThemeMode) {
+  const image = new Image();
+  image.src = logoUrl;
+  image.onload = () => {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    context.filter = LOGO_FILTERS[theme];
+    context.drawImage(image, 0, 0, size, size);
+
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.type = 'image/png';
+    link.href = canvas.toDataURL('image/png');
+  };
 }
 
 function viewFromHash(): View {
