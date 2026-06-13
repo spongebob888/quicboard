@@ -600,6 +600,20 @@ td small,
   text-align: center;
 }
 
+.location-badge {
+  gap: 6px;
+}
+
+.location-badge strong {
+  color: inherit;
+  font-size: 12px;
+}
+
+.location-flag {
+  font-size: 16px;
+  line-height: 1;
+}
+
 .latency-pair {
   display: flex;
   flex-wrap: wrap;

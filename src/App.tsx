@@ -418,7 +418,7 @@ function Proxies({
                 <PacketLossBadge label="Down loss" pathState={outbound.downlink_path_stats} />
               )}
               <span>{outbound.ip || 'no ip'}</span>
-              <span>{outbound.loc || 'unknown'}</span>
+              <LocationBadge loc={outbound.loc} />
             </div>
             {outbound.outbounds?.length ? (
               <div className="choice-list">
@@ -667,6 +667,18 @@ function PacketLossBadge({ pathState, label }: { pathState?: PathState | null; l
   );
 }
 
+function LocationBadge({ loc }: { loc: string }) {
+  const countryCode = normalizeCountryCode(loc);
+  const flag = countryCode ? countryCodeToFlag(countryCode) : '';
+
+  return (
+    <span className="location-badge" title={loc || 'unknown'}>
+      {flag && <span className="location-flag" aria-hidden="true">{flag}</span>}
+      <strong>{countryCode || 'unknown'}</strong>
+    </span>
+  );
+}
+
 function observedTraffic(observe: ObserveResponse) {
   const inbounds = Object.values(observe.inbounds);
   return {
@@ -727,6 +739,19 @@ function formatPathStateTitle(label: string, pathState?: PathState | null) {
 function formatPathRtt(rtt: number) {
   if (!Number.isFinite(rtt)) return 'unknown';
   return rtt < 1000 ? `${Math.round(rtt)} ms` : `${(rtt / 1000).toFixed(2)} s`;
+}
+
+function normalizeCountryCode(loc: string) {
+  const code = loc.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : '';
+}
+
+function countryCodeToFlag(countryCode: string) {
+  const regionalIndicatorOffset = 127397;
+  return countryCode
+    .split('')
+    .map((letter) => String.fromCodePoint(letter.charCodeAt(0) + regionalIndicatorOffset))
+    .join('');
 }
 
 function capitalizeMode(mode: RouterMode) {
