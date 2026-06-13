@@ -563,6 +563,11 @@ td small,
   gap: 14px;
 }
 
+.proxy-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .proxy-card {
   padding: 14px;
   display: grid;

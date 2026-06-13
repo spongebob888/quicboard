@@ -395,8 +395,24 @@ function Proxies({
     }
   }
 
+  async function traceAll() {
+    setBusy('trace:all');
+    try {
+      await Promise.all(outbounds.map((outbound) => api.trace(settings, outbound.tag)));
+      await onRefresh(true);
+    } finally {
+      setBusy('');
+    }
+  }
+
   return (
     <section className="view-stack">
+      <div className="proxy-toolbar">
+        <button className="secondary-button" onClick={traceAll} disabled={!outbounds.length || !!busy}>
+          <Globe2 size={16} className={busy === 'trace:all' ? 'spin' : ''} />
+          Trace all
+        </button>
+      </div>
       <div className="proxy-grid">
         {outbounds.map((outbound) => (
           <article className="proxy-card" key={outbound.tag}>
@@ -405,7 +421,7 @@ function Proxies({
                 <strong>{outbound.tag}</strong>
                 <span>{outbound.protocol}</span>
               </div>
-              <button className="icon-button small" title="Trace route" onClick={() => trace(outbound.tag)}>
+              <button className="icon-button small" title="Trace route" onClick={() => trace(outbound.tag)} disabled={!!busy}>
                 <Globe2 size={16} className={busy === `trace:${outbound.tag}` ? 'spin' : ''} />
               </button>
             </div>
