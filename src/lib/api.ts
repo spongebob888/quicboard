@@ -13,6 +13,12 @@ export interface StatsData {
   selected_node?: string | null;
 }
 
+export interface PathState {
+  packet_loss_rate: number;
+  mtu: number;
+  rtt: number;
+}
+
 export interface ObserveResponse {
   inbounds: Record<string, StatsData>;
   outbounds: Record<string, StatsData>;
@@ -29,6 +35,8 @@ export interface OutboundInfo {
   loc: string;
   outbounds?: string[] | null;
   selected_node?: string | null;
+  uplink_path_stats?: PathState | null;
+  downlink_path_stats?: PathState | null;
 }
 
 export interface ConnectionData {

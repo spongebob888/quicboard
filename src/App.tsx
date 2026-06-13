@@ -22,7 +22,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import logoUrl from '../assets/images/icon.png';
 import { Sparkline } from './components/Sparkline';
-import { ApiSettings, ConnectionData, ObserveResponse, OutboundInfo, RequestResponse, RouterMode, TrafficEntry, api } from './lib/api';
+import { ApiSettings, ConnectionData, ObserveResponse, OutboundInfo, PathState, RequestResponse, RouterMode, TrafficEntry, api } from './lib/api';
 import { formatBytes, formatDurationFromEpoch, formatLatency, formatRate, formatTime, sumBy } from './lib/format';
 
 type View = 'overview' | 'proxies' | 'connections' | 'traffic' | 'tools' | 'settings';
@@ -411,6 +411,12 @@ function Proxies({
             </div>
             <div className="proxy-meta">
               <LatencyBadge latencyUs={outbound.latency} />
+              {hasPacketLoss(outbound.uplink_path_stats?.packet_loss_rate) && (
+                <PacketLossBadge label="Up loss" pathState={outbound.uplink_path_stats} />
+              )}
+              {hasPacketLoss(outbound.downlink_path_stats?.packet_loss_rate) && (
+                <PacketLossBadge label="Down loss" pathState={outbound.downlink_path_stats} />
+              )}
               <span>{outbound.ip || 'no ip'}</span>
               <span>{outbound.loc || 'unknown'}</span>
             </div>
@@ -650,6 +656,17 @@ function LatencyBadge({ latencyUs, label }: { latencyUs: number; label?: string 
   );
 }
 
+function PacketLossBadge({ pathState, label }: { pathState?: PathState | null; label: string }) {
+  const packetLossRate = pathState?.packet_loss_rate ?? 0;
+
+  return (
+    <span className={`latency-badge ${packetLossQualityClass(packetLossRate)}`} title={formatPathStateTitle(label, pathState)}>
+      <span>{label}</span>
+      <strong>{formatPacketLoss(packetLossRate)}</strong>
+    </span>
+  );
+}
+
 function observedTraffic(observe: ObserveResponse) {
   const inbounds = Object.values(observe.inbounds);
   return {
@@ -684,6 +701,32 @@ function latencyQualityClass(latencyUs: number) {
   if (latencyMs < 180) return 'latency-fair';
   if (latencyMs < 350) return 'latency-poor';
   return 'latency-bad';
+}
+
+function packetLossQualityClass(packetLossRate: number) {
+  if (packetLossRate < 1) return 'latency-good';
+  if (packetLossRate < 3) return 'latency-fair';
+  if (packetLossRate < 8) return 'latency-poor';
+  return 'latency-bad';
+}
+
+function hasPacketLoss(packetLossRate: number | null | undefined) {
+  return typeof packetLossRate === 'number' && Number.isFinite(packetLossRate);
+}
+
+function formatPacketLoss(packetLossRate: number) {
+  if (packetLossRate < 10) return `${packetLossRate.toFixed(2)}%`;
+  return `${Math.round(packetLossRate)}%`;
+}
+
+function formatPathStateTitle(label: string, pathState?: PathState | null) {
+  if (!pathState) return label;
+  return `${label}: ${formatPacketLoss(pathState.packet_loss_rate)} | RTT: ${formatPathRtt(pathState.rtt)} | MTU: ${pathState.mtu}`;
+}
+
+function formatPathRtt(rtt: number) {
+  if (!Number.isFinite(rtt)) return 'unknown';
+  return rtt < 1000 ? `${Math.round(rtt)} ms` : `${(rtt / 1000).toFixed(2)} s`;
 }
 
 function capitalizeMode(mode: RouterMode) {
