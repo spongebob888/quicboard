@@ -14,7 +14,8 @@ export interface StatsData {
 }
 
 export interface PathState {
-  packet_loss_rate: number;
+  lost_packets: number;
+  sent_packets: number;
   mtu: number;
   rtt: number;
 }

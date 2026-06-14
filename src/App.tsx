@@ -431,10 +431,10 @@ function Proxies({
             </div>
             <div className="proxy-meta">
               <LatencyBadge latencyUs={outbound.latency} />
-              {hasPacketLoss(outbound.uplink_path_stats?.packet_loss_rate) && (
+              {hasPathState(outbound.uplink_path_stats) && (
                 <PacketLossBadge label="Up loss" pathState={outbound.uplink_path_stats} />
               )}
-              {hasPacketLoss(outbound.downlink_path_stats?.packet_loss_rate) && (
+              {hasPathState(outbound.downlink_path_stats) && (
                 <PacketLossBadge label="Down loss" pathState={outbound.downlink_path_stats} />
               )}
               <span>{outbound.ip || 'no ip'}</span>
@@ -677,7 +677,7 @@ function LatencyBadge({ latencyUs, label }: { latencyUs: number; label?: string 
 }
 
 function PacketLossBadge({ pathState, label }: { pathState?: PathState | null; label: string }) {
-  const packetLossRate = pathState?.packet_loss_rate ?? 0;
+  const packetLossRate = pathState ? getPacketLossRate(pathState) : 0;
 
   return (
     <span className={`latency-badge ${packetLossQualityClass(packetLossRate)}`} title={formatPathStateTitle(label, pathState)}>
@@ -742,8 +742,12 @@ function packetLossQualityClass(packetLossRate: number) {
   return 'latency-bad';
 }
 
-function hasPacketLoss(packetLossRate: number | null | undefined) {
-  return typeof packetLossRate === 'number' && Number.isFinite(packetLossRate);
+function hasPathState(pathState?: PathState | null) {
+  return Boolean(pathState) && Number.isFinite(pathState?.lost_packets) && Number.isFinite(pathState?.sent_packets);
+}
+
+function getPacketLossRate(pathState: PathState) {
+  return (pathState.lost_packets / (pathState.sent_packets + 1)) * 100;
 }
 
 function formatPacketLoss(packetLossRate: number) {
@@ -753,7 +757,7 @@ function formatPacketLoss(packetLossRate: number) {
 
 function formatPathStateTitle(label: string, pathState?: PathState | null) {
   if (!pathState) return label;
-  return `${label}: ${formatPacketLoss(pathState.packet_loss_rate)} | RTT: ${formatPathRtt(pathState.rtt)} | MTU: ${pathState.mtu}`;
+  return `${label}: ${formatPacketLoss(getPacketLossRate(pathState))} | Lost: ${pathState.lost_packets}/${pathState.sent_packets} | RTT: ${formatPathRtt(pathState.rtt)} | MTU: ${pathState.mtu}`;
 }
 
 function formatPathRtt(rtt: number) {
