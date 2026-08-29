@@ -275,8 +275,8 @@ function Overview({ settings, observe, outbounds, setOutbounds, onRefresh, conne
           value={formatBytes(totals.memory)}
           detail={
             <span className="latency-pair">
-              <LatencyBadge label="DNS" latencyUs={observe?.dns_avg_time_us ?? 0} />
-              <LatencyBadge label="Route" latencyUs={observe?.route_avg_time_us ?? 0} />
+              <LatencyBadge label="DNS" latencyMs={(observe?.dns_avg_time_us ?? 0) / 1000} />
+              <LatencyBadge label="Route" latencyMs={(observe?.route_avg_time_us ?? 0) / 1000} />
             </span>
           }
         />
@@ -350,7 +350,7 @@ function Overview({ settings, observe, outbounds, setOutbounds, onRefresh, conne
             <div className="route-card">
               <strong>{fastest.tag}</strong>
               <span>{fastest.protocol}</span>
-              <LatencyBadge latencyUs={fastest.latency} />
+              <LatencyBadge latencyMs={fastest.latency} />
               <small>{fastest.ip || 'No IP'} {fastest.loc && `- ${fastest.loc}`}</small>
             </div>
           ) : (
@@ -430,7 +430,7 @@ function Proxies({
               </button>
             </div>
             <div className="proxy-meta">
-              <LatencyBadge latencyUs={outbound.latency} />
+              <LatencyBadge latencyMs={outbound.latency} />
               {hasPathState(outbound.uplink_path_stats) && (
                 <PacketLossBadge label="Up loss" pathState={outbound.uplink_path_stats} />
               )}
@@ -667,11 +667,11 @@ function ChevronDownIcon() {
   return <span className="chevron-icon" aria-hidden="true" />;
 }
 
-function LatencyBadge({ latencyUs, label }: { latencyUs: number; label?: string }) {
+function LatencyBadge({ latencyMs, label }: { latencyMs: number; label?: string }) {
   return (
-    <span className={`latency-badge ${latencyQualityClass(latencyUs)}`}>
+    <span className={`latency-badge ${latencyQualityClass(latencyMs)}`}>
       {label && <span>{label}</span>}
-      <strong>{formatLatency(latencyUs)}</strong>
+      <strong>{formatLatency(latencyMs)}</strong>
     </span>
   );
 }
@@ -726,9 +726,8 @@ function smoothedRateSample(history: TrafficSnapshot[], current: TrafficSnapshot
   };
 }
 
-function latencyQualityClass(latencyUs: number) {
-  if (!latencyUs) return 'latency-pending';
-  const latencyMs = latencyUs / 1000;
+function latencyQualityClass(latencyMs: number) {
+  if (!latencyMs) return 'latency-pending';
   if (latencyMs < 80) return 'latency-good';
   if (latencyMs < 180) return 'latency-fair';
   if (latencyMs < 350) return 'latency-poor';

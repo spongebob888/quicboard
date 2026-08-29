@@ -9,9 +9,8 @@ export function formatRate(value: number) {
   return `${formatBytes(value)}/s`;
 }
 
-export function formatLatency(value: number) {
-  if (!value) return 'pending';
-  const ms = value / 1000;
+export function formatLatency(ms: number) {
+  if (!ms) return 'pending';
   return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
 }
 
